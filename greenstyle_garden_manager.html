@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenStyle & Garden Manager - ระบบจัดสวนและดูแลต้นไม้ด้วย AI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Kanit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: {
+                            850: '#064e3b',
+                            900: '#022c22',
+                        },
+                        sage: {
+                            50: '#f4f7f4',
+                            100: '#e3ebe3',
+                            300: '#b8cdb8',
+                            500: '#7a9e7a',
+                            700: '#4d694d',
+                        },
+                        sand: '#fdfbf7',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Kanit', 'sans-serif'],
+                        display: ['Kanit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Kanit', 'Inter', sans-serif;
+            background-color: #fdfbf7;
+        }
+        .pinterest-grid {
+            column-count: 1;
+            column-gap: 1.25rem;
+        }
+        @media (min-width: 640px) { .pinterest-grid { column-count: 2; } }
+        @media (min-width: 1024px) { .pinterest-grid { column-count: 3; } }
+        @media (min-width: 1280px) { .pinterest-grid { column-count: 4; } }
+        
+        .pinterest-card {
+            break-inside: avoid;
+            margin-bottom: 1.25rem;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800 antialiased selection:bg-emerald-200 selection:text-emerald-900">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header & Navigation -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-emerald-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('visualizer')">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-tr from-emerald-700 to-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-md shadow-emerald-700/20">
+                        <i class="fa-solid font-bold fa-leaf text-xl sm:text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-600 bg-clip-text text-transparent">GreenStyle</span>
+                        <span class="block text-[10px] sm:text-xs font-medium text-sage-700 tracking-wider uppercase">& Garden Manager AI</span>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center gap-1 bg-sage-50/80 p-1.5 rounded-full border border-sage-200/60">
+                    <button onclick="switchTab('visualizer')" id="nav-visualizer" class="nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-emerald-900 bg-white shadow-sm">
+                        <i class="fa-solid fa-wand-magic-sparkles text-emerald-600 mr-2"></i>AI Visualizer
+                    </button>
+                    <button onclick="switchTab('catalog')" id="nav-catalog" class="nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 hover:text-emerald-800">
+                        <i class="fa-solid fa-book-open text-sage-500 mr-2"></i>คลังพืชพรรณ
+                    </button>
+                    <button onclick="switchTab('mygarden')" id="nav-mygarden" class="nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 hover:text-emerald-800 relative">
+                        <i class="fa-solid fa-seedling text-sage-500 mr-2"></i>สวนของฉัน
+                        <span id="garden-badge" class="ml-1.5 bg-emerald-600 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">0</span>
+                    </button>
+                    <button onclick="switchTab('guides')" id="nav-guides" class="nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 hover:text-emerald-800">
+                        <i class="fa-solid fa-compass text-sage-500 mr-2"></i>คู่มือ 5 สไตล์
+                    </button>
+                    <button onclick="switchTab('doctor')" id="nav-doctor" class="nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 hover:text-emerald-800">
+                        <i class="fa-solid fa-user-doctor text-sage-500 mr-2"></i>หมอตี๋ AI
+                    </button>
+                </nav>
+
+                <!-- Mobile Header Right Actions -->
+                <div class="flex items-center gap-2 md:hidden">
+                    <button onclick="switchTab('mygarden')" class="relative p-2 rounded-xl bg-emerald-50 text-emerald-800">
+                        <i class="fa-solid fa-seedling text-lg"></i>
+                        <span id="garden-badge-mobile" class="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Bottom Nav bar -->
+        <div class="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md fixed bottom-0 left-0 right-0 z-40 px-2 py-1.5 flex justify-around items-center text-xs font-medium text-slate-600 shadow-lg">
+            <button onclick="switchTab('visualizer')" id="mob-nav-visualizer" class="mob-btn flex flex-col items-center p-1.5 text-emerald-700">
+                <i class="fa-solid fa-wand-magic-sparkles text-base mb-0.5"></i>Visualizer
+            </button>
+            <button onclick="switchTab('catalog')" id="mob-nav-catalog" class="mob-btn flex flex-col items-center p-1.5">
+                <i class="fa-solid fa-book-open text-base mb-0.5"></i>คลังต้นไม้
+            </button>
+            <button onclick="switchTab('mygarden')" id="mob-nav-mygarden" class="mob-btn flex flex-col items-center p-1.5">
+                <i class="fa-solid fa-seedling text-base mb-0.5"></i>สวนฉัน
+            </button>
+            <button onclick="switchTab('guides')" id="mob-nav-guides" class="mob-btn flex flex-col items-center p-1.5">
+                <i class="fa-solid fa-compass text-base mb-0.5"></i>คู่มือจัดสวน
+            </button>
+            <button onclick="switchTab('doctor')" id="mob-nav-doctor" class="mob-btn flex flex-col items-center p-1.5">
+                <i class="fa-solid fa-user-doctor text-base mb-0.5"></i>หมอตี๋ AI
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12">
+
+        <!-- TAB 1: AI GARDEN VISUALIZER -->
+        <section id="sec-visualizer" class="tab-content block space-y-8">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-sage-700 text-white p-6 sm:p-10 shadow-xl">
+                <div class="relative z-10 max-w-2xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold mb-4 border border-white/10">
+                        <i class="fa-solid fa-sparkles text-amber-300"></i> พลังขับเคลื่อนด้วย Gemini 3.1 Flash AI
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl font-bold tracking-tight mb-3">จำลองภาพสวนในฝันด้วย AI Visualizer</h1>
+                    <p class="text-emerald-100 text-sm sm:text-base font-light leading-relaxed">
+                        เนรมิตไอเดียจัดสวนตามพื้นที่บ้านของคุณ ไม่ว่าจะเป็นระเบียงคอนโด สวนข้างบ้าน หรือลานหลังบ้าน AI จะเจนเนอเรตภาพแนวคิดและแนะนำพันธุ์ไม้ที่เหมาะสมที่สุดให้อัตโนมัติ
+                    </p>
+                </div>
+                <div class="absolute -right-12 -bottom-12 opacity-15 text-white text-[240px] pointer-events-none">
+                    <i class="fa-solid fa-tree"></i>
+                </div>
+            </div>
+
+            <!-- Controls & Form Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-emerald-600"></i> กำหนดโจทย์การออกแบบ
+                    </h2>
+
+                    <!-- Style Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">1. เลือกสไตล์สวนที่ชอบ</label>
+                        <div class="grid grid-cols-2 gap-2" id="style-selector">
+                            <button type="button" onclick="selectStyle('Tropical')" class="style-opt-btn active p-3 rounded-2xl border text-left flex items-center gap-3 transition border-emerald-600 bg-emerald-50 text-emerald-900 font-medium">
+                                <div class="w-8 h-8 rounded-xl bg-emerald-200/60 flex items-center justify-center text-emerald-800"><i class="fa-solid fa-palm-tree"></i></div>
+                                <div><div class="text-xs font-bold">Tropical</div><div class="text-[10px] text-slate-500">เขตร้อนชื้นสดชื่น</div></div>
+                            </button>
+                            <button type="button" onclick="selectStyle('Modern Minimal')" class="style-opt-btn p-3 rounded-2xl border text-left flex items-center gap-3 transition border-slate-200 hover:border-slate-300 bg-white text-slate-700">
+                                <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-cubes"></i></div>
+                                <div><div class="text-xs font-bold">Modern Minimal</div><div class="text-[10px] text-slate-500">เรียบหรูดูสะอาด</div></div>
+                            </button>
+                            <button type="button" onclick="selectStyle('Japanese Zen')" class="style-opt-btn p-3 rounded-2xl border text-left flex items-center gap-3 transition border-slate-200 hover:border-slate-300 bg-white text-slate-700">
+                                <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-circle-dot"></i></div>
+                                <div><div class="text-xs font-bold">Japanese Zen</div><div class="text-[10px] text-slate-500">สงบ ผ่อนคลาย</div></div>
+                            </button>
+                            <button type="button" onclick="selectStyle('English Cottage')" class="style-opt-btn p-3 rounded-2xl border text-left flex items-center gap-3 transition border-slate-200 hover:border-slate-300 bg-white text-slate-700">
+                                <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-spa"></i></div>
+                                <div><div class="text-xs font-bold">English Cottage</div><div class="text-[10px] text-slate-500">ดอกไม้หวานอบอุ่น</div></div>
+                            </button>
+                            <button type="button" onclick="selectStyle('Desert Dry')" class="style-opt-btn col-span-2 p-3 rounded-2xl border text-left flex items-center gap-3 transition border-slate-200 hover:border-slate-300 bg-white text-slate-700">
+                                <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600"><i class="fa-solid fa-sun"></i></div>
+                                <div><div class="text-xs font-bold">Desert Dry / Mediterranean</div><div class="text-[10px] text-slate-500">ดูแลง่าย ประหยัดน้ำ แคคตัสและหินสวยงาม</div></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Area Type Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">2. ขนาด/ลักษณะพื้นที่</label>
+                        <select id="area-type" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                            <option value="ระเบียงคอนโดขนาดเล็ก (Small Balcony)">ระเบียงคอนโด / พื้นที่แคบ (Small Balcony)</option>
+                            <option value="สวนข้างบ้านทรงยาว (Side Yard Path)" selected>สวนข้างบ้านทรงยาว (Side Yard Path)</option>
+                            <option value="สวนหลังบ้านกลางแจ้ง (Backyard Garden)">สวนหลังบ้านกลางแจ้ง (Backyard Garden)</option>
+                            <option value="มุมต้นไม้ในบ้าน/ห้องรับแขก (Indoor Living Area)">มุมต้นไม้ในบ้าน / ห้องรับแขก (Indoor Living Area)</option>
+                        </select>
+                    </div>
+
+                    <!-- Detail Prompt Input -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">3. รายละเอียดเพิ่มเติม (Optional)</label>
+                        <textarea id="custom-prompt" rows="3" placeholder="เช่น ต้องการโต๊ะจิบกาแฟเล็กๆ, มีซุ้มไฟส้มอบอุ่น, อยากได้ไม้กระถางโทนเขียวเข้ม..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button id="btn-generate-vis" onclick="generateGardenConcept()" class="w-full bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-800 hover:to-emerald-700 text-white font-medium py-3.5 px-6 rounded-2xl shadow-md shadow-emerald-700/25 flex items-center justify-center gap-2 transition transform active:scale-95">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                        <span>เจนภาพและวิเคราะห์ด้วย AI</span>
+                    </button>
+                </div>
+
+                <!-- Display Output Section -->
+                <div class="lg:col-span-7 space-y-6">
+                    <!-- Placeholder State -->
+                    <div id="vis-placeholder" class="bg-white rounded-3xl border border-dashed border-slate-300 p-8 text-center space-y-4">
+                        <div class="w-20 h-20 mx-auto rounded-3xl bg-sage-50 text-sage-500 flex items-center justify-center text-3xl">
+                            <i class="fa-solid fa-image"></i>
+                        </div>
+                        <div class="max-w-md mx-auto">
+                            <h3 class="text-base font-bold text-slate-700 mb-1">ยังไม่มีภาพจำลองสวน</h3>
+                            <p class="text-xs text-slate-500">เลือกรอบสไตล์พื้นที่ทางซ้ายมือ แล้วกดปุ่ม "เจนภาพและวิเคราะห์ด้วย AI" เพื่อสร้างภาพคอนเซ็ปต์สวนฉบับคุณ</p>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="vis-loading" class="hidden bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-6 shadow-sm">
+                        <div class="relative w-20 h-20 mx-auto">
+                            <div class="absolute inset-0 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center text-emerald-700">
+                                <i class="fa-solid fa-leaf text-xl animate-bounce"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-emerald-900 mb-1">Gemini AI กำลังออกแบบและสร้างภาพสวน...</h3>
+                            <p class="text-xs text-slate-500">กำลังผสมผสานสไตล์ จัดแสงภาพ rendering และเลือกพืชพรรณที่เหมาะกับคุณ (ประมาณ 5-10 วินาที)</p>
+                        </div>
+                    </div>
+
+                    <!-- Result Container -->
+                    <div id="vis-result" class="hidden space-y-6">
+                        <!-- Pinterest Style Image Card -->
+                        <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-lg">
+                            <div class="relative group bg-slate-900 aspect-video sm:aspect-[4/3] flex items-center justify-center overflow-hidden">
+                                <img id="vis-output-img" src="" alt="AI Generated Garden" class="w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                                <div class="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5">
+                                    <i class="fa-solid fa-camera text-emerald-400"></i> AI Visual Concept
+                                </div>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <h3 id="vis-output-title" class="text-xl font-bold text-emerald-900">สวน Tropical สดชื่น</h3>
+                                    <span id="vis-output-tag" class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">Tropical</span>
+                                </div>
+                                <p id="vis-output-desc" class="text-sm text-slate-600 leading-relaxed"></p>
+                            </div>
+                        </div>
+
+                        <!-- Plant Recommendations from AI -->
+                        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-seedling text-emerald-600"></i> รายการต้นไม้แนะนำในภาพนี้
+                                </h4>
+                                <button onclick="addAllAiPlantsToGarden()" class="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+                                    <i class="fa-solid fa-plus-circle"></i> เพิ่มทั้งหมดเข้าสวนของฉัน
+                                </button>
+                            </div>
+                            <div id="vis-plant-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PLANT CATALOG -->
+        <section id="sec-catalog" class="tab-content hidden space-y-6">
+            <!-- Header & Filter Bar -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-emerald-900">คลังพืชพรรณยอดนิยม (Plant Catalog)</h2>
+                        <p class="text-xs text-slate-500">คัดสรรพันธุ์ไม้เหมาะกับสภาพอากาศประเทศไทย พร้อมคู่มือดูแล</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-500 font-medium">พบทั้งหมด:</span>
+                        <span id="catalog-count" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                        <input type="text" id="cat-search" oninput="filterCatalog()" placeholder="ค้นหาชื่อต้นไม้..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <!-- Style Filter -->
+                    <select id="cat-style-filter" onchange="filterCatalog()" class="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="ALL">ทุกสไตล์สวน</option>
+                        <option value="Tropical">Tropical</option>
+                        <option value="Modern Minimal">Modern Minimal</option>
+                        <option value="Japanese Zen">Japanese Zen</option>
+                        <option value="English Cottage">English Cottage</option>
+                        <option value="Desert Dry">Desert Dry</option>
+                    </select>
+                    <!-- Care Level Filter -->
+                    <select id="cat-care-filter" onchange="filterCatalog()" class="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="ALL">ทุกระดับการดูแล</option>
+                        <option value="ง่าย">ดูแล : ง่าย</option>
+                        <option value="ปานกลาง">ดูแล : ปานกลาง</option>
+                        <option value="ยาก">ดูแล : ยาก/ใส่ใจพิเศษ</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Pinterest Grid for Plants -->
+            <div id="catalog-grid" class="pinterest-grid">
+                <!-- Cards injected by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: MY GARDEN MANAGER -->
+        <section id="sec-mygarden" class="tab-content hidden space-y-6">
+            <!-- Stats Dashboard -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-xl"><i class="fa-solid fa-tree"></i></div>
+                    <div>
+                        <div id="stat-total-plants" class="text-2xl font-bold text-slate-800">0</div>
+                        <div class="text-xs text-slate-500">ต้นไม้ในสวนของคุณ</div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-xl"><i class="fa-solid fa-droplet font-bold"></i></div>
+                    <div>
+                        <div id="stat-need-water" class="text-2xl font-bold text-amber-600">0</div>
+                        <div class="text-xs text-slate-500">ต้องรดน้ำวันนี้</div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div>
+                        <div id="stat-overdue" class="text-2xl font-bold text-rose-600">0</div>
+                        <div class="text-xs text-slate-500">เกินกำหนดรดน้ำ</div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl"><i class="fa-solid fa-check"></i></div>
+                    <div>
+                        <div id="stat-healthy" class="text-2xl font-bold text-blue-600">0</div>
+                        <div class="text-xs text-slate-500">ความชื้นสมบูรณ์ดี</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls & Zone Filters -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Zone Filter Tabs -->
+                <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0" id="zone-filter-container">
+                    <button onclick="filterMyGardenZone('ALL')" class="zone-tab-btn active px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-emerald-700 text-white">ทั้งหมด</button>
+                    <button onclick="filterMyGardenZone('หน้าบ้าน')" class="zone-tab-btn px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">หน้าบ้าน</button>
+                    <button onclick="filterMyGardenZone('ระเบียง')" class="zone-tab-btn px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">ระเบียง</button>
+                    <button onclick="filterMyGardenZone('ห้องรับแขก')" class="zone-tab-btn px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">ห้องรับแขก</button>
+                    <button onclick="filterMyGardenZone('สวนหลังบ้าน')" class="zone-tab-btn px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">สวนหลังบ้าน</button>
+                </div>
+
+                <!-- Add Custom Plant Button -->
+                <button onclick="openAddPlantModal()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-plus"></i> เพิ่มต้นไม้ใหม่เข้าสวน
+                </button>
+            </div>
+
+            <!-- My Garden Grid -->
+            <div id="mygarden-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Injected dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 4: GARDEN STYLE GUIDES -->
+        <section id="sec-guides" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+                <h2 class="text-2xl font-bold text-emerald-900 mb-2">คู่มือออกแบบและจัดสวน 5 สไตล์ยอดนิยม</h2>
+                <p class="text-xs text-slate-500">เรียนรู้หลักการจัดวาง จานสีแนะนำ วัสดุ และพืชพรรณหลักประจำแต่ละสไตล์</p>
+
+                <!-- Style Guide Tabs -->
+                <div class="flex items-center gap-2 overflow-x-auto mt-6 pb-2 border-b border-slate-100" id="guide-tabs">
+                    <button onclick="showGuideStyle('Tropical')" class="guide-tab active px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-emerald-700 text-white shadow-sm">Tropical Paradise</button>
+                    <button onclick="showGuideStyle('Modern Minimal')" class="guide-tab px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200">Modern Minimal</button>
+                    <button onclick="showGuideStyle('Japanese Zen')" class="guide-tab px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200">Japanese Zen</button>
+                    <button onclick="showGuideStyle('English Cottage')" class="guide-tab px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200">English Cottage</button>
+                    <button onclick="showGuideStyle('Desert Dry')" class="guide-tab px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200">Desert Dry</button>
+                </div>
+            </div>
+
+            <!-- Style Guide Details Body -->
+            <div id="guide-body" class="space-y-6">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 5: GEMINI AI PLANT DOCTOR -->
+        <section id="sec-doctor" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-lg overflow-hidden flex flex-col h-[75vh]">
+                <!-- Chat Header -->
+                <div class="bg-gradient-to-r from-emerald-900 to-emerald-800 p-4 sm:p-6 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-700 flex items-center justify-center text-2xl text-emerald-200 border border-emerald-500/40">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base sm:text-lg">หมอตี๋ AI Plant Doctor</h3>
+                            <p class="text-[11px] text-emerald-200 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Gemini 3 Flash พร้อมให้คำปรึกษาตลอด 24 ชั่วโมง
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat History Window -->
+                <div id="chat-history" class="flex-grow p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/60">
+                    <!-- Welcome Msg -->
+                    <div class="flex gap-3 max-w-[85%]">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-800 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-leaf"></i></div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed space-y-2">
+                            <p>สวัสดีครับ! ผมคือ <b>หมอตี๋ Gemini AI Plant Doctor</b> 🌿</p>
+                            <p>มีปัญหาเกี่ยวกับต้นไม้ ใบเหลือง ลำต้นเน่า หนอนแมลง หรือต้องการคำแนะนำเรื่องการใส่ปุ๋ย สามารถพิมพ์ถามหรือเลือกหัวข้อตัวอย่างด้านล่างได้เลยครับ!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suggested Questions Chips -->
+                <div class="p-3 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto text-xs">
+                    <span class="text-slate-400 font-medium shrink-0 text-[11px]"><i class="fa-regular fa-lightbulb"></i> ลองถาม:</span>
+                    <button onclick="askDoctorPreset('ทำไมใบล่างของมอนสเตอร่าถึงเริ่มเหลืองแล้วหลุดร่วง?')" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap transition">ใบมอนสเตอร่าเหลือง?</button>
+                    <button onclick="askDoctorPreset('วิธีดูแลไทรใบสักไม่ให้ใบร่วงและขอบใบไหม้ต้องทำอย่างไร?')" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap transition">ไทรใบสักขอบใบไหม้</button>
+                    <button onclick="askDoctorPreset('สูตรการใส่ปุ๋ยให้ไม้ใบในบ้านสวยเงางามตลอดปี')" class="bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full whitespace-nowrap transition">สูตรปุ๋ยบำรุงไม้ใบ</button>
+                </div>
+
+                <!-- Chat Input Form -->
+                <form onsubmit="handleDoctorSubmit(event)" class="p-3 sm:p-4 bg-white border-t border-slate-200 flex gap-2">
+                    <input type="text" id="doctor-input" placeholder="พิมพ์ถามหมอตี๋เกี่ยวกับสุขภาพต้นไม้ของคุณ..." class="flex-grow bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <button type="submit" id="btn-doctor-send" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl font-medium shadow-sm transition flex items-center justify-center">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: ADD PLANT TO MY GARDEN -->
+    <div id="modal-add-plant" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-seedling text-emerald-600"></i> เพิ่มต้นไม้เข้าสวนของฉัน
+                </h3>
+                <button onclick="closeAddPlantModal()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form onsubmit="savePlantToMyGarden(event)" class="space-y-4">
+                <input type="hidden" id="modal-plant-img">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ชื่อต้นไม้</label>
+                    <input type="text" id="modal-plant-name" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">โซนการปลูกในบ้าน</label>
+                    <select id="modal-plant-zone" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <option value="หน้าบ้าน">หน้าบ้าน (Front yard)</option>
+                        <option value="ระเบียง">ระเบียง (Balcony)</option>
+                        <option value="ห้องรับแขก">ห้องรับแขก (Living Room)</option>
+                        <option value="สวนหลังบ้าน">สวนหลังบ้าน (Backyard)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ความถี่รดน้ำ (วัน/ครั้ง)</label>
+                        <input type="number" id="modal-plant-freq" value="3" min="1" max="30" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">รดน้ำล่าสุดเมื่อ</label>
+                        <input type="date" id="modal-plant-lastdate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeAddPlantModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200">ยกเลิก</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 shadow-sm">บันทึกเรียบร้อย</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* API Configuration */
+        const GEMINI_API_KEY = ""; // Runtime automatically injects API key if empty string
+        const TEXT_MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+        const IMAGE_MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${GEMINI_API_KEY}`;
+
+        /* Application State */
+        let state = {
+            currentTab: 'visualizer',
+            selectedStyle: 'Tropical',
+            catalogPlants: [],
+            myGarden: [],
+            currentZoneFilter: 'ALL',
+            aiGeneratedPlantsCache: [],
+            guideStyle: 'Tropical'
+        };
+
+        /* Seed Catalog Data */
+        const PLANT_DATABASE = [
+            {
+                id: 'p1',
+                name: 'มอนสเตอร่า (Monstera Deliciosa)',
+                botanical: 'Monstera deliciosa',
+                style: 'Tropical',
+                care: 'ปานกลาง',
+                sun: 'แสงแดดรำไร / ร่มรื่น',
+                water: 'ทุก 3-4 วัน',
+                waterDays: 3,
+                recommendedSpot: 'มุมห้องรับแขกใกล้หน้าต่าง หรือระเบียงร่ม',
+                img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&w=600&q=80',
+                desc: 'ราชินีแห่งไม้ใบ ใบมีแฉกฉลุเป็นเอกลักษณ์ ช่วยเพิ่มบรรยากาศสไตล์เขตร้อนชื้นแบบหรูหรา'
+            },
+            {
+                id: 'p2',
+                name: 'ไทรใบสัก (Fiddle Leaf Fig)',
+                botanical: 'Ficus lyrata',
+                style: 'Modern Minimal',
+                care: 'ปานกลาง',
+                sun: 'แสงแดดโปร่งทางทิศทิศตะวันออก',
+                water: 'ทุก 4-5 วัน',
+                waterDays: 5,
+                recommendedSpot: 'ข้างโซฟา หรือริมหน้าต่างห้องรับแขก',
+                img: 'https://images.unsplash.com/photo-1545241047-6083a3684587?auto=format&fit=crop&w=600&q=80',
+                desc: 'ต้นไม้รูปทรงสง่า ลำต้นตรง ใบใหญ่หนาสีเขียวเข้ม ยอดนิยมสำหรับการตกแต่งแนวตั้งสไตล์มินิมอล'
+            },
+            {
+                id: 'p3',
+                name: 'กวักมรกต (ZZ Plant)',
+                botanical: 'Zamioculcas zamiifolia',
+                style: 'Modern Minimal',
+                care: 'ง่าย',
+                sun: 'แดดรำไร หรือแสงไฟสังเคราะห์',
+                water: 'ทุก 7-10 วัน',
+                waterDays: 7,
+                recommendedSpot: 'โต๊ะทำงาน หรือห้องนอน',
+                img: 'https://images.unsplash.com/photo-1632207691143-643e2a9a9361?auto=format&fit=crop&w=600&q=80',
+                desc: 'ไม้มงคลทนทานสูงมาก ใบมันวาว ไม่ต้องการน้ำบ่อย ฟอกอากาศและเติบโตได้ดีแม้ในที่แสงน้อย'
+            },
+            {
+                id: 'p4',
+                name: 'ยางอินเดีย (Rubber Plant)',
+                botanical: 'Ficus elastica',
+                style: 'Tropical',
+                care: 'ง่าย',
+                sun: 'แสงแดดปานกลาง-รำไร',
+                water: 'ทุก 4-5 วัน',
+                waterDays: 4,
+                recommendedSpot: 'ระเบียงบ้าน หรือโถงทางเข้า',
+                img: 'https://images.unsplash.com/photo-1598880940080-ff9a29891b85?auto=format&fit=crop&w=600&q=80',
+                desc: 'ใบสีเขียวเข้มอมม่วงดำหนามันเงา เป็นจุดดึงสายตาที่ดีเยี่ยม ช่วยดูดสารพิษในอากาศ'
+            },
+            {
+                id: 'p5',
+                name: 'สนมังกร (Chinese Juniper)',
+                botanical: 'Juniperus chinensis',
+                style: 'Japanese Zen',
+                care: 'ปานกลาง',
+                sun: 'แดดจัดเต็มวัน',
+                water: 'ทุก 2 วัน',
+                waterDays: 2,
+                recommendedSpot: 'สวนหินหน้าบ้าน หรือข้างลานทางเดิน',
+                img: 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=600&q=80',
+                desc: 'ไม้พุ่มรูปทรงกรวยแหลม ลำต้นบิดเกลือมีเสน่ห์ เหมาะอย่างยิ่งสำหรับสวนหินและสไตล์เซน'
+            },
+            {
+                id: 'p6',
+                name: 'เดหลี (Peace Lily)',
+                botanical: 'Spathiphyllum',
+                style: 'English Cottage',
+                care: 'ง่าย',
+                sun: 'แดดรำไร ร่มเงา',
+                water: 'ทุก 2-3 วัน',
+                waterDays: 2,
+                recommendedSpot: 'ริมระเบียง หรือห้องน้ำที่มีหน้าต่าง',
+                img: 'https://images.unsplash.com/photo-1593691509543-c55fb32e7355?auto=format&fit=crop&w=600&q=80',
+                desc: 'ไม้ดอกสีขาวบริสุทธิ์ ชูช่อสวยงาม ใบสีเขียวสด ช่วยดูดซับความชื้นและสารพิษในบ้าน'
+            },
+            {
+                id: 'p7',
+                name: 'กระบองเพชรถังทอง (Golden Barrel Cactus)',
+                botanical: 'Echinocactus grusonii',
+                style: 'Desert Dry',
+                care: 'ง่าย',
+                sun: 'แดดจัด 100%',
+                water: 'ทุก 10-14 วัน',
+                waterDays: 12,
+                recommendedSpot: 'สวนหินกลางแจ้ง หรือระเบียงรับแดดทิศใต้',
+                img: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80',
+                desc: 'ทรงกลมสวยงาม หนามสีทองระยิบระยับเมื่อสะท้อนแสงแดด เหมาะสำหรับสวนแล้งสไตล์เมดิเตอร์เรเนียน'
+            },
+            {
+                id: 'p8',
+                name: 'ลิ้นมังกร (Snake Plant)',
+                botanical: 'Sansevieria trifasciata',
+                style: 'Modern Minimal',
+                care: 'ง่าย',
+                sun: 'ทนทุกสภาพแสง',
+                water: 'ทุก 7 วัน',
+                waterDays: 7,
+                recommendedSpot: 'ห้องนอน หรือข้างโต๊ะทำงาน',
+                img: 'https://images.unsplash.com/photo-1509423350716-97f9360b4e09?auto=format&fit=crop&w=600&q=80',
+                desc: 'คายออกซิเจนในตอนกลางคืน ทรงใบตั้งตรงกระชับ เหมาะกับกระถางปูนนู้ดสไตล์มินิมอล'
+            }
+        ];
+
+        /* Garden Style Guides Knowledge Base */
+        const STYLE_GUIDES = {
+            'Tropical': {
+                title: 'Tropical Paradise (เขตร้อนชื้นสดชื่น)',
+                palette: ['#064e3b', '#15803d', '#854d0e', '#fef08a'],
+                materials: 'ไม้แท้, หินธรรมชาติ, กระถางดินเผา, แผ่นศิลาแลง',
+                concept: 'เน้นความเขียวชอุ่ม ร่มรื่น ซ้อนชั้นของใบไม้ที่มีรูปทรงและขนาดต่างกัน สร้างบรรยากาศรีสอร์ตผ่อนคลาย',
+                plants: ['มอนสเตอร่า', 'ยางอินเดีย', 'เฟิร์นแม่ยาย', 'พลูด่างใบใหญ่', 'กล้วยไม้']
+            },
+            'Modern Minimal': {
+                title: 'Modern Minimalist (มินิมอลเรียบหรู)',
+                palette: ['#1e293b', '#64748b', '#cbd5e1', '#064e3b'],
+                materials: 'คอนกรีตเปลือย, เหล็กพ่นสีดำ, กระถางทรงกระบอกไฟเบอร์ซีเมนต์, หินเกล็ดสีเทา',
+                concept: 'น้อยแต่มาก เน้นฟอร์มต้นไม้ที่มีโครงสร้างชัดเจน ไม่แออัด เว้นสเปซทางสายตาให้ดูสะอาดตา',
+                plants: ['ไทรใบสัก', 'ลิ้นมังกร', 'กวักมรกต', 'ปาล์มพัด', 'ซองออฟอินเดีย']
+            },
+            'Japanese Zen': {
+                title: 'Japanese Zen (สงบ ผ่อนคลายสไตล์เซน)',
+                palette: ['#475569', '#94a3b8', '#334155', '#15803d'],
+                materials: 'หินกรวดแม่น้ำสีขาว/เทา, ไม้ไผ่, ตะไคร่น้ำ, อ่างน้ำหินธรรมชาติ',
+                concept: 'จำลองธรรมชาติอันสงบเงียบ ใช้หินและทรายแทนสายน้ำ เพิ่มสมาธิและความสงบในจิตใจ',
+                plants: ['สนมังกร', 'บอนไซ', 'ไผ่เลี้ยงแคระ', 'ชาดัด', 'เฟิร์นก้านดำ']
+            },
+             me: 'English Cottage',
+            'English Cottage': {
+                title: 'English Cottage Garden (หวานอบอุ่นนุ่มนวล)',
+                palette: ['#be123c', '#ca8a04', '#4338ca', '#15803d'],
+                materials: 'อิฐมอญแดง, อิฐบล็อกโบราณ, ซุ้มเหล็กดัดระแนงไม้, กระถางเซรามิกลายโบราณ',
+                concept: 'จัดวางผสมผสานไม้ดอกสีสันสดใสแบบเป็นธรรมชาติ ไม่เป็นระเบียบเป๊ะๆ ให้ความรู้สึกอบอุ่นน่ารัก',
+                plants: ['เดหลี', 'กุหลาบเลื้อย', 'ไฮเดรนเยีย', 'พุดซ้อน', 'แพรพานพุ่ม']
+            },
+            'Desert Dry': {
+                title: 'Desert Dry / Mediterranean (ทะเลทรายแล้งสไตล์)',
+                palette: ['#ca8a04', '#78350f', '#a16207', '#334155'],
+                materials: 'หินทราย, กรวดทรายเม็ดใหญ่, ดินเผาสีส้มอิฐ, ไม้เก่าทรวดทรงแปลกตา',
+                concept: 'ใช้พืชทนแล้ง ดูแลง่าย ประหยัดน้ำ เล่นกับพื้นผิวทรายและหินรูปทรงแปลกตา',
+                plants: ['กระบองเพชรถังทอง', 'อากาเว่', 'ลีลาวดี', 'ชวนชม', 'พญาไร้ใบ']
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMyGardenFromStorage();
+            state.catalogPlants = [...PLANT_DATABASE];
+            renderCatalog();
+            renderMyGarden();
+            renderGuideStyle('Tropical');
+            updateBadges();
+
+            // Set default date picker to today
+            document.getElementById('modal-plant-lastdate').valueAsDate = new Date();
+        });
+
+        /* Tab Switcher Logic */
+        function switchTab(tabId) {
+            state.currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+
+            // Update Nav Buttons Desktop
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = 'nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-slate-600 hover:text-emerald-800';
+            });
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) activeNav.className = 'nav-btn px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 text-emerald-900 bg-white shadow-sm';
+
+            // Update Nav Buttons Mobile
+            document.querySelectorAll('.mob-btn').forEach(btn => {
+                btn.classList.remove('text-emerald-700');
+                btn.classList.add('text-slate-500');
+            });
+            const activeMob = document.getElementById(`mob-nav-${tabId}`);
+            if (activeMob) {
+                activeMob.classList.remove('text-slate-500');
+                activeMob.classList.add('text-emerald-700');
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const icon = type === 'success' ? 'fa-circle-check text-emerald-500' : 'fa-triangle-exclamation text-amber-500';
+            toast.className = 'pointer-events-auto bg-slate-900 text-white text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700 animate-in slide-in-from-bottom duration-200';
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function selectStyle(styleName) {
+            state.selectedStyle = styleName;
+            document.querySelectorAll('.style-opt-btn').forEach(btn => {
+                btn.className = 'style-opt-btn p-3 rounded-2xl border text-left flex items-center gap-3 transition border-slate-200 hover:border-slate-300 bg-white text-slate-700';
+            });
+            event.currentTarget.className = 'style-opt-btn active p-3 rounded-2xl border text-left flex items-center gap-3 transition border-emerald-600 bg-emerald-50 text-emerald-900 font-medium';
+        }
+
+        async function generateGardenConcept() {
+            const style = state.selectedStyle;
+            const area = document.getElementById('area-type').value;
+            const custom = document.getElementById('custom-prompt').value.trim();
+
+            const placeholder = document.getElementById('vis-placeholder');
+            const loading = document.getElementById('vis-loading');
+            const result = document.getElementById('vis-result');
+
+            placeholder.classList.add('hidden');
+            result.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            // Prompts construction
+            const imagePrompt = `A stunning photorealistic Pinterest-style landscape architecture photo of a ${style} garden layout in a ${area}. ${custom}. Beautiful lighting, lush green plants, elegant aesthetics, 4k detail.`;
+            
+            const textPrompt = `คุณคือสถาปนิกจัดสวนมืออาชีพ ช่วยวิเคราะห์การจัดสวนสไตล์ ${style} สำหรับพื้นที่ ${area} ${custom? `(โจทย์เพิ่มเติม: ${custom})`: ''}.
+            ตอบเป็นรูปแบบ JSON เท่านั้น โดยมี Key ดังนี้:
+            - "title": ชื่อคอนเซ็ปต์สวนสั้นๆ น่ารัก
+            - "description": คำอธิบายแนวคิดจัดสวนและจุดเด่นสั้นๆ 2-3 ประโยค
+            - "plants": Array ของ Object ต้นไม้ที่แนะนำ 4 ชนิด แต่ละอันมี { "name": "ชื่อภาษาไทย", "waterDays": 3, "reason": "เหตุผลที่เหมาะ" }`;
+
+            try {
+                // Call Gemini Image API & Text API concurrently
+                const [imgData, textRes] = await Promise.all([
+                    fetchGeminiImage(imagePrompt),
+                    fetchGeminiText(textPrompt)
+                ]);
+
+                // Update Image
+                if (imgData) {
+                    document.getElementById('vis-output-img').src = imgData;
+                } else {
+                    // Fallback visual if image fails
+                    document.getElementById('vis-output-img').src = 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=800&q=80';
+                }
+
+                // Parse Text Analysis
+                let parsedText;
+                try {
+                    const cleaned = textRes.replace(/```json|```/g, '').trim();
+                    parsedText = JSON.parse(cleaned);
+                } catch (e) {
+                    parsedText = {
+                        title: `สวนสไตล์ ${style} แสนรื่นรมย์`,
+                        description: `แนวคิดการจัดสวนสไตล์ ${style} ที่ลงตัวกับพื้นที่ ${area} เน้นการเลือกพืชพรรณที่ดูแลง่าย ดูสดชื่นตลอดปี`,
+                        plants: [
+                            { name: 'มอนสเตอร่า', waterDays: 3, reason: 'เพิ่มมิติใบใหญ่เขียวสด' },
+                            { name: 'ลิ้นมังกร', waterDays: 7, reason: 'ทนทาน เลี้ยงง่าย' },
+                            { name: 'กวักมรกต', waterDays: 7, reason: 'มงคล ฟอกอากาศ' },
+                            { name: 'เดหลี', waterDays: 2, reason: 'ดอกขาวสวยงาม' }
+                        ]
+                    };
+                }
+
+                // Render Results
+                document.getElementById('vis-output-title').textContent = parsedText.title;
+                document.getElementById('vis-output-tag').textContent = style;
+                document.getElementById('vis-output-desc').textContent = parsedText.description;
+
+                // Cache plants for "Add All"
+                state.aiGeneratedPlantsCache = parsedText.plants;
+
+                // Render plant cards
+                const plantContainer = document.getElementById('vis-plant-list');
+                plantContainer.innerHTML = parsedText.plants.map((p, idx) => `
+                    <div class="p-3 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <div>
+                            <div class="text-xs font-bold text-emerald-900">${p.name}</div>
+                            <div class="text-[10px] text-slate-500">${p.reason} (รดน้ำทุก ${p.waterDays} วัน)</div>
+                        </div>
+                        <button onclick="addSingleAiPlant('${p.name}', ${p.waterDays})" class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center hover:bg-emerald-200 transition">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                        </button>
+                    </div>
+                `).join('');
+
+                loading.classList.add('hidden');
+                result.classList.remove('hidden');
+                showToast('เจนภาพสวนคอนเซ็ปต์เรียบร้อยแล้ว!');
+
+            } catch (err) {
+                console.error(err);
+                loading.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ AI กรุณาลองใหม่อีกครั้ง', 'error');
+            }
+        }
+
+        async function fetchGeminiImage(prompt) {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseModalities: ['TEXT', 'IMAGE'],
+                    imageConfig: { aspectRatio: "4:3" }
+                }
+            };
+
+            const res = await fetch(IMAGE_MODEL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            const part = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+            if (part) {
+                return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            }
+            return null;
+        }
+
+        async function fetchGeminiText(prompt) {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            const res = await fetch(TEXT_MODEL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        }
+
+        function addSingleAiPlant(name, waterDays) {
+            const newPlant = {
+                id: 'my-' + Date.now() + Math.random(),
+                name: name,
+                zone: 'หน้าบ้าน',
+                waterDays: waterDays || 3,
+                lastWatered: new Date().toISOString().split('T')[0],
+                img: 'https://images.unsplash.com/photo-1545241047-6083a3684587?auto=format&fit=crop&w=400&q=80'
+            };
+            state.myGarden.push(newPlant);
+            saveMyGardenToStorage();
+            renderMyGarden();
+            updateBadges();
+            showToast(`เพิ่ม "${name}" เข้าสวนเรียบร้อยแล้ว`);
+        }
+
+        function addAllAiPlantsToGarden() {
+            if (!state.aiGeneratedPlantsCache || state.aiGeneratedPlantsCache.length === 0) return;
+            state.aiGeneratedPlantsCache.forEach(p => {
+                state.myGarden.push({
+                    id: 'my-' + Date.now() + Math.random(),
+                    name: p.name,
+                    zone: 'หน้าบ้าน',
+                    waterDays: p.waterDays || 3,
+                    lastWatered: new Date().toISOString().split('T')[0],
+                    img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&w=400&q=80'
+                });
+            });
+            saveMyGardenToStorage();
+            renderMyGarden();
+            updateBadges();
+            showToast('บันทึกต้นไม้ทั้งหมดเข้าสวนเรียบร้อยแล้ว!');
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = state.catalogPlants.map(plant => `
+                <div class="pinterest-card bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition group">
+                    <div class="relative overflow-hidden aspect-[4/3]">
+                        <img src="${plant.img}" alt="${plant.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-emerald-900 shadow-sm">
+                            ${plant.style}
+                        </div>
+                    </div>
+                    <div class="p-5 space-y-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base leading-snug">${plant.name}</h3>
+                            <p class="text-[11px] text-slate-400 italic">${plant.botanical}</p>
+                        </div>
+                        <p class="text-xs text-slate-600 line-clamp-2">${plant.desc}</p>
+                        
+                        <div class="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2 text-[11px]">
+                            <div class="text-slate-500"><i class="fa-solid fa-sun text-amber-500 mr-1"></i> ${plant.sun}</div>
+                            <div class="text-slate-500"><i class="fa-solid fa-droplet text-blue-500 mr-1"></i> ${plant.water}</div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-2 flex items-center justify-between gap-2">
+                            <button onclick="openAddPlantModalWithData('${plant.name}', '${plant.img}', ${plant.waterDays})" class="flex-grow bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> เพิ่มเข้าสวน
+                            </button>
+                            <a href="https://www.pinterest.com/search/pins/?q=${encodeURIComponent(plant.name + ' garden layout')}" target="_blank" class="bg-rose-50 hover:bg-rose-100 text-rose-700 p-2 rounded-xl transition flex items-center justify-center text-xs" title="ดูไอเดียบน Pinterest">
+                                <i class="fa-brands fa-pinterest"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('catalog-count').textContent = state.catalogPlants.length;
+        }
+
+        function filterCatalog() {
+            const search = document.getElementById('cat-search').value.toLowerCase();
+            const style = document.getElementById('cat-style-filter').value;
+            const care = document.getElementById('cat-care-filter').value;
+
+            state.catalogPlants = PLANT_DATABASE.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(search) || p.botanical.toLowerCase().includes(search);
+                const matchStyle = style === 'ALL' || p.style === style;
+                const matchCare = care === 'ALL' || p.care === care;
+                return matchSearch && matchStyle && matchCare;
+            });
+
+            renderCatalog();
+        }
+
+        function renderMyGarden() {
+            const grid = document.getElementById('mygarden-grid');
+            
+            let filteredList = state.myGarden;
+            if (state.currentZoneFilter !== 'ALL') {
+                filteredList = state.myGarden.filter(p => p.zone === state.currentZoneFilter);
+            }
+
+            if (filteredList.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-12 rounded-3xl border border-dashed border-slate-300 text-center space-y-3">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl mx-auto"><i class="fa-solid fa-seedling"></i></div>
+                        <h4 class="font-bold text-slate-700">ยังไม่มีต้นไม้ในโซนนี้</h4>
+                        <p class="text-xs text-slate-400">เลือกต้นไม้จากคลังพืชพรรณ หรือกดปุ่มเพิ่มต้นไม้ใหม่เพื่อเริ่มสร้างสวนของคุณ</p>
+                    </div>
+                `;
+                calculateGardenStats();
+                return;
+            }
+
+            const today = new Date();
+
+            grid.innerHTML = filteredList.map(plant => {
+                const lastDate = new Date(plant.lastWatered);
+                const nextDate = new Date(lastDate);
+                nextDate.setDate(lastDate.getDate() + parseInt(plant.waterDays));
+
+                // Difference in days from today
+                const diffTime = nextDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                let badgeHtml = '';
+                if (diffDays < 0) {
+                    badgeHtml = `<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-circle-exclamation mr-1"></i> เกินกำหนด ${Math.abs(diffDays)} วัน</span>`;
+                } else if (diffDays === 0) {
+                    badgeHtml = `<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-droplet mr-1"></i> รดน้ำวันนี้</span>`;
+                } else {
+                    badgeHtml = `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-check mr-1"></i> อีก ${diffDays} วัน</span>`;
+                }
+
+                return `
+                    <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition p-5 space-y-4">
+                        <div class="flex items-center gap-4">
+                            <img src="${plant.img}" alt="${plant.name}" class="w-16 h-16 rounded-2xl object-cover shrink-0">
+                            <div class="flex-grow">
+                                <div class="text-xs text-slate-400 font-semibold uppercase tracking-wider">${plant.zone}</div>
+                                <h3 class="font-bold text-slate-800 text-base">${plant.name}</h3>
+                                <div class="mt-1">${badgeHtml}</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                            <div>รดน้ำล่าสุด: <b class="text-slate-700 block">${plant.lastWatered}</b></div>
+                            <div>ความถี่: <b class="text-slate-700 block">ทุก ${plant.waterDays} วัน</b></div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button onclick="markWatered('${plant.id}')" class="flex-grow bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-droplet text-blue-500"></i> รดน้ำแล้ว!
+                            </button>
+                            <button onclick="removePlantFromGarden('${plant.id}')" class="text-slate-300 hover:text-rose-500 p-2 text-xs transition" title="ลบออก">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            calculateGardenStats();
+        }
+
+        function markWatered(id) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const plant = state.myGarden.find(p => p.id === id);
+            if (plant) {
+                plant.lastWatered = todayStr;
+                saveMyGardenToStorage();
+                renderMyGarden();
+                updateBadges();
+                showToast(`อัปเดตการรดน้ำ "${plant.name}" เรียบร้อย! 💦`);
+            }
+        }
+
+        function removePlantFromGarden(id) {
+            state.myGarden = state.myGarden.filter(p => p.id !== id);
+            saveMyGardenToStorage();
+            renderMyGarden();
+            updateBadges();
+            showToast('ลบต้นไม้ออกจากสวนเรียบร้อย');
+        }
+
+        function filterMyGardenZone(zone) {
+            state.currentZoneFilter = zone;
+            document.querySelectorAll('.zone-tab-btn').forEach(btn => {
+                btn.className = 'zone-tab-btn px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200';
+            });
+            event.currentTarget.className = 'zone-tab-btn active px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition bg-emerald-700 text-white';
+            renderMyGarden();
+        }
+
+        function calculateGardenStats() {
+            const total = state.myGarden.length;
+            let needWater = 0;
+            let overdue = 0;
+            let healthy = 0;
+
+            const today = new Date();
+
+            state.myGarden.forEach(p => {
+                const lastDate = new Date(p.lastWatered);
+                const nextDate = new Date(lastDate);
+                nextDate.setDate(lastDate.getDate() + parseInt(p.waterDays));
+                const diffTime = nextDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) overdue++;
+                else if (diffDays === 0) needWater++;
+                else healthy++;
+            });
+
+            document.getElementById('stat-total-plants').textContent = total;
+            document.getElementById('stat-need-water').textContent = needWater;
+            document.getElementById('stat-overdue').textContent = overdue;
+            document.getElementById('stat-healthy').textContent = healthy;
+        }
+
+        function updateBadges() {
+            const count = state.myGarden.length;
+            document.getElementById('garden-badge').textContent = count;
+            document.getElementById('garden-badge-mobile').textContent = count;
+        }
+
+        function saveMyGardenToStorage() {
+            localStorage.setItem('greenstyle_my_garden', JSON.stringify(state.myGarden));
+        }
+
+        function loadMyGardenFromStorage() {
+            const saved = localStorage.getItem('greenstyle_my_garden');
+            if (saved) {
+                try {
+                    state.myGarden = JSON.parse(saved);
+                } catch (e) {
+                    state.myGarden = [];
+                }
+            } else {
+                // Seed 2 initial plants
+                state.myGarden = [
+                    {
+                        id: 'seed-1',
+                        name: 'มอนสเตอร่า (Monstera)',
+                        zone: 'ห้องรับแขก',
+                        waterDays: 3,
+                        lastWatered: new Date().toISOString().split('T')[0],
+                        img: 'https://images.unsplash.com/photo-1614594975525-e45190c55d0b?auto=format&fit=crop&w=400&q=80'
+                    },
+                    {
+                        id: 'seed-2',
+                        name: 'ไทรใบสัก (Fiddle Leaf)',
+                        zone: 'ระเบียง',
+                        waterDays: 5,
+                        lastWatered: new Date().toISOString().split('T')[0],
+                        img: 'https://images.unsplash.com/photo-1545241047-6083a3684587?auto=format&fit=crop&w=400&q=80'
+                    }
+                ];
+                saveMyGardenToStorage();
+            }
+        }
+
+        /* Modal Handlers */
+        function openAddPlantModal() {
+            document.getElementById('modal-plant-name').value = '';
+            document.getElementById('modal-plant-img').value = 'https://images.unsplash.com/photo-1545241047-6083a3684587?auto=format&fit=crop&w=400&q=80';
+            document.getElementById('modal-add-plant').classList.remove('hidden');
+        }
+
+        function openAddPlantModalWithData(name, img, freq) {
+            document.getElementById('modal-plant-name').value = name;
+            document.getElementById('modal-plant-img').value = img;
+            document.getElementById('modal-plant-freq').value = freq || 3;
+            document.getElementById('modal-add-plant').classList.remove('hidden');
+        }
+
+        function closeAddPlantModal() {
+            document.getElementById('modal-add-plant').classList.add('hidden');
+        }
+
+        function savePlantToMyGarden(e) {
+            e.preventDefault();
+            const name = document.getElementById('modal-plant-name').value;
+            const zone = document.getElementById('modal-plant-zone').value;
+            const freq = document.getElementById('modal-plant-freq').value;
+            const lastDate = document.getElementById('modal-plant-lastdate').value;
+            const img = document.getElementById('modal-plant-img').value;
+
+            state.myGarden.push({
+                id: 'my-' + Date.now(),
+                name: name,
+                zone: zone,
+                waterDays: parseInt(freq),
+                lastWatered: lastDate,
+                img: img
+            });
+
+            saveMyGardenToStorage();
+            renderMyGarden();
+            updateBadges();
+            closeAddPlantModal();
+            showToast(`เพิ่ม "${name}" ลงใน ${zone} เรียบร้อย!`);
+        }
+
+        function showGuideStyle(styleKey) {
+            state.guideStyle = styleKey;
+            document.querySelectorAll('.guide-tab').forEach(btn => {
+                btn.className = 'guide-tab px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200';
+            });
+            event.currentTarget.className = 'guide-tab active px-5 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap bg-emerald-700 text-white shadow-sm';
+            renderGuideStyle(styleKey);
+        }
+
+        function renderGuideStyle(key) {
+            const data = STYLE_GUIDES[key];
+            const container = document.getElementById('guide-body');
+
+            container.innerHTML = `
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                    <div>
+                        <h3 class="text-xl font-bold text-emerald-900 mb-1">${data.title}</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">${data.concept}</p>
+                    </div>
+
+                    <!-- Color Palette -->
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">จานสีแนะนำ (Color Palette)</div>
+                        <div class="flex items-center gap-2">
+                            ${data.palette.map(c => `
+                                <div class="w-10 h-10 rounded-2xl shadow-inner border border-black/10" style="background-color: ${c}" title="${c}"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Materials -->
+                    <div class="p-4 bg-sage-50/60 rounded-2xl border border-sage-200/60">
+                        <div class="text-xs font-bold text-sage-700 mb-1"><i class="fa-solid fa-cubes mr-1"></i> วัสดุตบแต่งแนะนำ</div>
+                        <div class="text-xs text-slate-700">${data.materials}</div>
+                    </div>
+
+                    <!-- Key Plants List -->
+                    <div>
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">พืชพรรณหลักประจำสไตล์นี้</div>
+                        <div class="flex flex-wrap gap-2">
+                            ${data.plants.map(p => `
+                                <span class="bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-xl border border-emerald-200/60">
+                                    <i class="fa-solid fa-leaf text-emerald-600 mr-1.5"></i>${p}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function askDoctorPreset(questionText) {
+            document.getElementById('doctor-input').value = questionText;
+            handleDoctorSubmit(new Event('submit'));
+        }
+
+        async function handleDoctorSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('doctor-input');
+            const query = input.value.trim();
+            if (!query) return;
+
+            const chatHistory = document.getElementById('chat-history');
+
+            // Render User Bubble
+            chatHistory.innerHTML += `
+                <div class="flex gap-3 justify-end max-w-[85%] ml-auto">
+                    <div class="bg-emerald-700 text-white p-4 rounded-2xl rounded-tr-none shadow-sm text-sm leading-relaxed">
+                        ${query}
+                    </div>
+                </div>
+            `;
+            input.value = '';
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Render Doctor Typing Indicator
+            const typingId = 'typing-' + Date.now();
+            chatHistory.innerHTML += `
+                <div id="${typingId}" class="flex gap-3 max-w-[85%]">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-800 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-leaf"></i></div>
+                    <div class="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-500 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-notch animate-spin text-emerald-600"></i> หมอตี๋กำลังวิเคราะห์คำตอบ...
+                    </div>
+                </div>
+            `;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Call Gemini Text API
+            const prompt = `คุณคือ "หมอตี๋ Gemini AI Plant Doctor" ผู้เชี่ยวชาญด้านพฤกษศาสตร์และโรคพืช ให้คำตอบที่เข้าใจง่าย เป็นกันเอง และเป็นประโยชน์สูงสุดสำหรับการดูแลต้นไม้ในประเทศไทย
+            คำถามจากผู้ใช้: "${query}"`;
+
+            try {
+                const answer = await fetchGeminiText(prompt);
+                document.getElementById(typingId).remove();
+
+                chatHistory.innerHTML += `
+                    <div class="flex gap-3 max-w-[85%]">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-800 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-leaf"></i></div>
+                        <div class="bg-white border border-slate-200 p-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 leading-relaxed space-y-2">
+                            ${formatMarkdown(answer)}
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                document.getElementById(typingId).remove();
+                chatHistory.innerHTML += `
+                    <div class="flex gap-3 max-w-[85%]">
+                        <div class="w-8 h-8 rounded-xl bg-rose-800 text-white flex items-center justify-center text-xs shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="bg-rose-50 border border-rose-200 p-4 rounded-2xl text-sm text-rose-800">
+                            ขออภัยครับ หมอตี๋ไม่สามารถเชื่อมต่อระบบได้ชั่วคราว กรุณาลองใหม่อีกครั้งครับ
+                        </div>
+                    </div>
+                `;
+            }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function formatMarkdown(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+</html>
